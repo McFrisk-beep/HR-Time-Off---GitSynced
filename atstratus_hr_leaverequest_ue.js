@@ -31,6 +31,7 @@
 				});
 				log.debug('status',intStatusId);
 				if(intStatusId == 2){
+                    //Approved
 					scriptContext.form.addPageInitMessage({
                         type: message.Type.CONFIRMATION,
                         title: 'This Leave Request has been Approved',
@@ -38,6 +39,7 @@
                     }); 
 				}
                 else if(intStatusId == 1){
+                    //Pending Approval
                     scriptContext.form.addPageInitMessage({
                         type: message.Type.INFORMATION,
                         title: 'This Leave Request is Pending Approval',
@@ -45,6 +47,7 @@
                     }); 
                 }
 				else if(intStatusId == 3){
+                    //Rejected
 					scriptContext.form.addPageInitMessage({
                         type: message.Type.ERROR,
                         title: 'This Leave Request has been Rejected',
@@ -52,6 +55,7 @@
                     }); 
 				}
                 else if(intStatusId == 11){
+                    //Open
 					scriptContext.form.addPageInitMessage({
                         type: message.Type.INFORMATION,
                         title: 'This Leave Request is Open',
@@ -79,7 +83,10 @@
       */
      function beforeSubmit(scriptContext){
          try{
-
+             if((scriptContext.type).toLowerCase() == 'delete'){
+				//Get the record
+				var objCurrentRecord = scriptContext.newRecord;
+             }
          }
          catch(e){
              
