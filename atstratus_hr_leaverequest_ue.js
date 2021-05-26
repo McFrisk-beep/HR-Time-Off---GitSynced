@@ -63,11 +63,8 @@
                     }); 
                 }
 			}
-		}catch(e){		
-			log.error({
-				title: e.name,
-				details: e.message
-			});			
+		}catch(e){
+            log.error('Error occurred on beforeLoad', e);		
 		}
      }
  
@@ -86,31 +83,59 @@
              if((scriptContext.type).toLowerCase() == 'delete'){
 				//Get the record
 				var objCurrentRecord = scriptContext.newRecord;
+
+                //Delete the Calendar Event beforehand.
+                record.delete({
+                    type: record.Type.CALENDAR_EVENT,
+                    id: objCurrentRecord.getValue({ fieldId: 'custrecord_atstratus_hr_lr_event'})
+                });
+
+                //Load the policy for update
+                var policyRecordSearch = search.create({
+                    type: "customrecord_atstratus_leave_policy",
+                    filters:
+                    [
+                    ["custrecord_atstratus_employee","anyof", objCurrentRecord.getValue({ fieldId: 'custrecord_atstratus_hr_lr_employee'})], 
+                    "AND", 
+                    ["custrecord_atstratus_policytype","anyof", objCurrentRecord.getValue({ fieldId: 'custrecord_atstratus_hr_lr_time_off_type'})], 
+                    "AND", 
+                    ["custrecord_atstratus_isactive","is","T"], 
+                    "AND", 
+                    ["custrecord_atstratus_dateapplicable","within","thisyear"]
+                    ],
+                    columns:
+                    [
+                    search.createColumn({name: "internalid", label: "Internal ID"})
+                    ]
+                });
+
+                policyRecordSearch.run().each(function(result){
+                    //Load the policy record, and add however many leave the employee requested.
+                    var policyLoad = record.load({
+                        type: 'customrecord_atstratus_leave_policy',
+                        id: result.getValue({ name: 'internalid'}),
+                    });
+                    policyLoad.setValue({
+                        fieldId: 'custrecord_atstratus_leaveused',
+                        value: (policyLoad.getValue({ fieldId: 'custrecord_atstratus_leaveused'}) - objCurrentRecord.getValue({ fieldId: 'custrecord_atstratus_hr_lr_duration'}))
+                    });
+                    policyLoad.save();
+                    log.debug('Record successfully saved', result.getValue({ name: 'internalid'}));
+        
+                    //Ideally should only have one result, so we return false here.
+                    return false;
+                });
              }
          }
          catch(e){
-             
+             log.error('Error occurred on beforeSubmit', e);
          }
-     }
- 
-     /**
-      * Function definition to be triggered before record is loaded.
-      *
-      * @param {Object} scriptContext
-      * @param {Record} scriptContext.newRecord - New record
-      * @param {Record} scriptContext.oldRecord - Old record
-      * @param {string} scriptContext.type - Trigger type
-      * @Since 2015.2
-      */
-     function afterSubmit(scriptContext) {
- 
      }
  
  
      return {
          beforeLoad: beforeLoad,
-         beforeSubmit: beforeSubmit,
-        //  afterSubmit: afterSubmit
+         beforeSubmit: beforeSubmit
      };
      
  });
