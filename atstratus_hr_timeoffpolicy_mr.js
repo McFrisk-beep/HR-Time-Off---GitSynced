@@ -20,7 +20,48 @@
       * @since 2015.1
       */
      function getInputData() {
-         
+        var policySearch = search.create({
+            type: "customrecord_atstratus_leave_policy",
+            filters:
+            [
+            ],
+            columns:
+            [
+               search.createColumn({
+                  name: "custrecord_atstratus_policyapplicable",
+                  sort: search.Sort.DESC,
+                  label: "Time Off Policy"
+               }),
+               search.createColumn({name: "custrecord_atstratus_policytype", label: "Policy Type"}),
+               search.createColumn({
+                  name: "custrecord_atstratus_dateapplicable",
+                  sort: search.Sort.ASC,
+                  label: "Start Date Applicable"
+               }),
+               search.createColumn({name: "custrecord_atstratus_leaveaccrued", label: "Leave Accrued"}),
+               search.createColumn({name: "custrecord_atstratus_leaveused", label: "Leave Used"}),
+               search.createColumn({name: "custrecord_atstratus_leaverem", label: "Leave Remaining"}),
+               search.createColumn({
+                  name: "custrecord_atstratus_isactive",
+                  sort: search.Sort.ASC,
+                  label: "Is Active?"
+               }),
+               search.createColumn({
+                  name: "custrecord_atstratus_pr_policy_hours",
+                  join: "CUSTRECORD_ATSTRATUS_POLICYAPPLICABLE",
+                  label: "Number of Days"
+               }),
+               search.createColumn({
+                  name: "formulanumeric",
+                  formula: "ROUND(({custrecord_atstratus_policyapplicable.custrecord_atstratus_pr_policy_hours}*(ABS(TO_DATE({today})-TO_DATE({custrecord_atstratus_dateapplicable}))/NULLIF(ABS(TO_DATE({custrecord_atstratus_policyapplicable.custrecord_atstratus_pr_policy_enddate})-TO_DATE({custrecord_atstratus_policyapplicable.custrecord_atstratus_pr_policy_startdate})),0))) , 0)",
+                  label: "Formula (Numeric)"
+               })
+            ]
+         });
+         var searchResultCount = policySearch.runPaged().count;
+         log.debug("policySearch result count",searchResultCount);
+
+         return policySearch;
      }
  
      /**
@@ -30,7 +71,10 @@
       * @since 2015.1
       */
      function map(context) {
- 
+        var searchResult = JSON.parse(context.value);
+        log.debug('MAP DATA', searchResult);
+
+        //result.getValue({ name: 'formulatext', summary: 'MIN'});
      }
  
      function reduce(context) {
@@ -63,7 +107,7 @@
      return {
          getInputData: getInputData,
          map: map,
-         reduce: reduce,
+         //reduce: reduce,
          summarize: summarize
      };
  });
