@@ -85,46 +85,50 @@
 				var objCurrentRecord = scriptContext.newRecord;
 
                 //Delete the Calendar Event beforehand.
-                record.delete({
-                    type: record.Type.CALENDAR_EVENT,
-                    id: objCurrentRecord.getValue({ fieldId: 'custrecord_atstratus_hr_lr_event'})
-                });
+                if(objCurrentRecord.getValue({ fieldId: 'custrecord_atstratus_hr_lr_event'})){
+                    record.delete({
+                        type: record.Type.CALENDAR_EVENT,
+                        id: objCurrentRecord.getValue({ fieldId: 'custrecord_atstratus_hr_lr_event'})
+                    });
+                }
 
                 //Load the policy for update
-                var policyRecordSearch = search.create({
-                    type: "customrecord_atstratus_leave_policy",
-                    filters:
-                    [
-                    ["custrecord_atstratus_employee","anyof", objCurrentRecord.getValue({ fieldId: 'custrecord_atstratus_hr_lr_employee'})], 
-                    "AND", 
-                    ["custrecord_atstratus_policytype","anyof", objCurrentRecord.getValue({ fieldId: 'custrecord_atstratus_hr_lr_time_off_type'})], 
-                    "AND", 
-                    ["custrecord_atstratus_isactive","is","T"], 
-                    "AND", 
-                    ["custrecord_atstratus_dateapplicable","within","thisyear"]
-                    ],
-                    columns:
-                    [
-                    search.createColumn({name: "internalid", label: "Internal ID"})
-                    ]
-                });
-
-                policyRecordSearch.run().each(function(result){
-                    //Load the policy record, and add however many leave the employee requested.
-                    var policyLoad = record.load({
-                        type: 'customrecord_atstratus_leave_policy',
-                        id: result.getValue({ name: 'internalid'}),
+                if(objCurrentRecord.getValue({ fieldId: 'custrecord_atstratus_hr_lr_status'}) == 2){
+                    var policyRecordSearch = search.create({
+                        type: "customrecord_atstratus_leave_policy",
+                        filters:
+                        [
+                        ["custrecord_atstratus_employee","anyof", objCurrentRecord.getValue({ fieldId: 'custrecord_atstratus_hr_lr_employee'})], 
+                        "AND", 
+                        ["custrecord_atstratus_policytype","anyof", objCurrentRecord.getValue({ fieldId: 'custrecord_atstratus_hr_lr_time_off_type'})], 
+                        "AND", 
+                        ["custrecord_atstratus_isactive","is","T"], 
+                        "AND", 
+                        ["custrecord_atstratus_dateapplicable","within","thisyear"]
+                        ],
+                        columns:
+                        [
+                        search.createColumn({name: "internalid", label: "Internal ID"})
+                        ]
                     });
-                    policyLoad.setValue({
-                        fieldId: 'custrecord_atstratus_leaveused',
-                        value: (policyLoad.getValue({ fieldId: 'custrecord_atstratus_leaveused'}) - objCurrentRecord.getValue({ fieldId: 'custrecord_atstratus_hr_lr_duration'}))
+    
+                    policyRecordSearch.run().each(function(result){
+                        //Load the policy record, and add however many leave the employee requested.
+                        var policyLoad = record.load({
+                            type: 'customrecord_atstratus_leave_policy',
+                            id: result.getValue({ name: 'internalid'}),
+                        });
+                        policyLoad.setValue({
+                            fieldId: 'custrecord_atstratus_leaveused',
+                            value: (policyLoad.getValue({ fieldId: 'custrecord_atstratus_leaveused'}) - objCurrentRecord.getValue({ fieldId: 'custrecord_atstratus_hr_lr_duration'}))
+                        });
+                        policyLoad.save();
+                        log.debug('Record successfully saved', result.getValue({ name: 'internalid'}));
+            
+                        //Ideally should only have one result, so we return false here.
+                        return false;
                     });
-                    policyLoad.save();
-                    log.debug('Record successfully saved', result.getValue({ name: 'internalid'}));
-        
-                    //Ideally should only have one result, so we return false here.
-                    return false;
-                });
+                }
              }
          }
          catch(e){
