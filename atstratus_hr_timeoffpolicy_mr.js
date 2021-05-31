@@ -20,6 +20,8 @@
       * @since 2015.1
       */
      function getInputData() {
+        //Used a built-in Saved Search to prevent tampering the data search for use.
+        //Unless there's an update with the Formula field, then it's in the best intention to prevent users from modifying the formula especially.
         var policySearch = search.create({
             type: "customrecord_atstratus_leave_policy",
             filters:
@@ -72,13 +74,23 @@
       */
      function map(context) {
         var searchResult = JSON.parse(context.value);
-        log.debug('MAP DATA', searchResult);
+        //log.debug('MAP DATA', searchResult);
 
-        //result.getValue({ name: 'formulatext', summary: 'MIN'});
-     }
- 
-     function reduce(context) {
- 
+        //Update the Leave Accrued field on the Policy Record itself from the data from the Saved Search.
+        try{
+            log.debug('Calculated Leave Count', searchResult.values['formulanumeric']);
+            var policyRecord = record.submitFields({
+               type: searchResult.recordType,
+               id: searchResult.id,
+               values: {
+                  'custrecord_atstratus_leaveaccrued': searchResult.values['formulanumeric']
+               }
+            });
+            log.debug('policyRecord saved successfully', 'Internal ID: ' + policyRecord);
+        }
+        catch(e){
+            log.error('Error occured on MAP', e);
+        }
      }
  
      /**
@@ -107,7 +119,6 @@
      return {
          getInputData: getInputData,
          map: map,
-         //reduce: reduce,
          summarize: summarize
      };
  });
