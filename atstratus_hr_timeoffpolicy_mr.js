@@ -26,6 +26,7 @@
             type: "customrecord_atstratus_leave_policy",
             filters:
             [
+               ["custrecord_atstratus_isactive","is","T"]
             ],
             columns:
             [
