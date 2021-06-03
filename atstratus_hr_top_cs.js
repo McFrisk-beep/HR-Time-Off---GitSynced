@@ -79,26 +79,7 @@
                 }
 
                 if(currRec.getText({ fieldId: 'custrecord_atstratus_pr_policy_per'}) == 'Annual'){
-
-                    //WARNING: Possible issue in the future should the customer change their Date Formats.
-                    //Probably need to handle these some time in the future.
-                    var month, day, year;
-                    var firstDay = new Date(new Date().getFullYear(), 0, 1);
-                    month = firstDay.getMonth()+1;
-                    day = firstDay.getDate();
-                    year = firstDay.getFullYear();
-                    firstDay = day + '/' + month + '/' + year;
-                    firstDay = format.parse({ value: firstDay, type: format.Type.DATE});
-
-                    var lastDay = new Date(new Date().getFullYear(), 11, 31);
-                    month = lastDay.getMonth()+1;
-                    day = lastDay.getDate();
-                    year = lastDay.getFullYear();
-                    lastDay = day + '/' + month + '/' + year;
-                    lastDay = format.parse({ value: lastDay, type: format.Type.DATE});
-
-                    currRec.setValue({ fieldId: 'custrecord_atstratus_pr_policy_startdate', value: firstDay});
-                    currRec.setValue({ fieldId: 'custrecord_atstratus_pr_policy_enddate', value: lastDay});
+                    setAnnualDates(currRec);
                 }
             }
             else if(scriptContext.fieldId == 'custrecord_ats_quarter'){
@@ -152,13 +133,86 @@
       * @since 2015.2
       */
      function validateField(scriptContext) {
- 
+        var currRec = scriptContext.currentRecord;
+
+        try{
+            if((scriptContext.fieldId == 'custrecord_atstratus_pr_policy_startdate' || scriptContext.fieldId == 'custrecord_atstratus_pr_policy_enddate')
+            && currRec.getText({ fieldId: 'custrecord_atstratus_pr_policy_per'}) == 'Custom'){
+
+                if(currRec.getValue({ fieldId: 'custrecord_atstratus_pr_policy_startdate'}) != null
+                && currRec.getValue({ fieldId: 'custrecord_atstratus_pr_policy_enddate'}) != null){
+
+                    var startDate = currRec.getValue({ fieldId: 'custrecord_atstratus_pr_policy_startdate'});
+                    var endDate = currRec.getValue({ fieldId: 'custrecord_atstratus_pr_policy_enddate'});
+            
+                    var yesterdayDate = new Date();
+                    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+                    
+                    //86,400,000 = 1-day.
+                    var dayDifference = (endDate - startDate) / 86400000;
+            
+                    //Validators. Check for Date overlaps. There should be none before saving the record.
+                    // if(yesterdayDate > startDate){
+                    //     dialog.alert({
+                    //         title: 'Alert',
+                    //         message: 'Start Date cannot be before today.'
+                    //     });
+                    //     return false;
+                    // }
+                    // if(yesterdayDate > endDate){
+                    //     dialog.alert({
+                    //         title: 'Alert',
+                    //         message: 'End Date cannot be before today.'
+                    //     });
+                    //     return false;
+                    // }
+                    if(dayDifference < 0){
+                        dialog.alert({
+                            title: 'Alert',
+                            message: 'Start Date cannot be after or on the End date.'
+                        });
+                        setAnnualDates(currRec);
+                        return false;
+                    }
+                }
+            }
+        }
+        catch(e){
+            log.error('Error occurred on validateField', e);
+            return false;
+        }
+
+        return true;
+     }
+
+     /**
+      * Validation function to be executed when record is saved.
+      *
+      * @param {Object} scriptContext
+      * @param {Record} scriptContext.currentRecord - Current form record
+      * @returns {boolean} Return true if record is valid
+      *
+      * @since 2015.2
+      */
+      function saveRecord(scriptContext) {
+        var currRec = scriptContext.currentRecord;
+
+        if(currRec.getText({ fieldId: 'custrecord_atstratus_pr_policy_per'}) == 'Quarterly' && currRec.getText({ fieldId: 'custrecord_ats_quarter'}) == ''){
+            dialog.alert({
+                title: 'Alert',
+                message: 'Select either Q1-Q4 on the Quarters to proceed.'
+            });
+            return false;
+        }
+
+        return true;
      }
  
      return {
          pageInit: pageInit,
-         fieldChanged: fieldChanged
-         // validateField: validateField
+         fieldChanged: fieldChanged,
+         validateField: validateField,
+         saveRecord: saveRecord
      };
      
      /*
@@ -214,6 +268,8 @@
 
      /*
         Calculate and Set the Quarter Dates accordingly
+        WARNING: Possible issue in the future should the customer change their Date Formats.
+        Probably need to handle these some time in the future.
 
         initialDate - Initial Start date for the quarter
         currRec - Current Record for full UI functionalities
@@ -227,14 +283,41 @@
         parsedDate = format.parse({ value: (day + '/' + month + '/' + year), type: format.Type.DATE});
         //log.debug('start', parsedDate);
 
-        currRec.setValue({ fieldId: 'custrecord_atstratus_pr_policy_startdate', value: parsedDate});
+        currRec.setValue({ fieldId: 'custrecord_atstratus_pr_policy_startdate', value: parsedDate, ignoreFieldChange: true});
 
         month += 2;
         day = lastDay;
         parsedDate = format.parse({ value: (day + '/' + month + '/' + year), type: format.Type.DATE});
         //log.debug('end', parsedDate);
 
-        currRec.setValue({ fieldId: 'custrecord_atstratus_pr_policy_enddate', value: parsedDate});
+        currRec.setValue({ fieldId: 'custrecord_atstratus_pr_policy_enddate', value: parsedDate, ignoreFieldChange: true});
+    }
+
+     /*
+        Set Start date to 1st day of year, then End date to last day of year
+        WARNING: Possible issue in the future should the customer change their Date Formats.
+        Probably need to handle these some time in the future.
+
+        currRec - Current Record for full UI functionalities
+     */
+    function setAnnualDates(currRec){
+        var month, day, year;
+        var firstDay = new Date(new Date().getFullYear(), 0, 1);
+        month = firstDay.getMonth()+1;
+        day = firstDay.getDate();
+        year = firstDay.getFullYear();
+        firstDay = day + '/' + month + '/' + year;
+        firstDay = format.parse({ value: firstDay, type: format.Type.DATE});
+
+        var lastDay = new Date(new Date().getFullYear(), 11, 31);
+        month = lastDay.getMonth()+1;
+        day = lastDay.getDate();
+        year = lastDay.getFullYear();
+        lastDay = day + '/' + month + '/' + year;
+        lastDay = format.parse({ value: lastDay, type: format.Type.DATE});
+
+        currRec.setValue({ fieldId: 'custrecord_atstratus_pr_policy_startdate', value: firstDay, ignoreFieldChange: true});
+        currRec.setValue({ fieldId: 'custrecord_atstratus_pr_policy_enddate', value: lastDay, ignoreFieldChange: true});
     }
  });
  
