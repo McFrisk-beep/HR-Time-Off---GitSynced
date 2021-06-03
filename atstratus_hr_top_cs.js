@@ -60,7 +60,7 @@
          var currRec = scriptContext.currentRecord;
 
          try{
-            log.debug('fieldChanged executed', scriptContext.fieldId);
+            //log.debug('fieldChanged executed', scriptContext.fieldId);
             if(scriptContext.fieldId == 'custrecord_atstratus_pr_policy_per'){
                 //If CUSTOM, enable the fields from being modified.
                 if(currRec.getText({ fieldId: 'custrecord_atstratus_pr_policy_per'}) == 'Custom'){
@@ -73,8 +73,6 @@
                 //Toggle the Quarterly field if the Frequency is set to Quarterly
                 if(currRec.getText({ fieldId: 'custrecord_atstratus_pr_policy_per'}) == 'Quarterly'){
                     enableQuarter(currRec);
-
-                    //TODO Calculate for the Quarters
                 }
                 else{
                     disableQuarter(currRec);
@@ -85,14 +83,14 @@
                     //WARNING: Possible issue in the future should the customer change their Date Formats.
                     //Probably need to handle these some time in the future.
                     var month, day, year;
-                    var firstDay = new Date(new Date().getFullYear(), 0, 1)
+                    var firstDay = new Date(new Date().getFullYear(), 0, 1);
                     month = firstDay.getMonth()+1;
                     day = firstDay.getDate();
                     year = firstDay.getFullYear();
                     firstDay = day + '/' + month + '/' + year;
                     firstDay = format.parse({ value: firstDay, type: format.Type.DATE});
 
-                    var lastDay = new Date(new Date().getFullYear(), 11, 31)
+                    var lastDay = new Date(new Date().getFullYear(), 11, 31);
                     month = lastDay.getMonth()+1;
                     day = lastDay.getDate();
                     year = lastDay.getFullYear();
@@ -103,51 +101,40 @@
                     currRec.setValue({ fieldId: 'custrecord_atstratus_pr_policy_enddate', value: lastDay});
                 }
             }
+            else if(scriptContext.fieldId == 'custrecord_ats_quarter'){
+                //Set Quarters appropriately. Fixed 3-months = 1-quarter
+                var month, day, year, quarterDate;
+
+                //Passes the initial dates for the Quarters. The setQuarterDates function processes the calculation and setting of the Field Values
+                switch(currRec.getText({ fieldId: 'custrecord_ats_quarter'})){
+                    case 'Q1':
+                        quarterDate = new Date(new Date().getFullYear(), 0, 1);
+                        setQuarterDates(quarterDate, currRec, 31);
+                        break;
+                    case 'Q2':
+                        quarterDate = new Date(new Date().getFullYear(), 3, 1);
+                        setQuarterDates(quarterDate, currRec, 30);
+                        break;
+                    case 'Q3':
+                        quarterDate = new Date(new Date().getFullYear(), 6, 1);
+                        setQuarterDates(quarterDate, currRec, 30);
+                        break;
+                    case 'Q4':
+                        quarterDate = new Date(new Date().getFullYear(), 9, 1);
+                        setQuarterDates(quarterDate, currRec, 31);
+                        break;
+                    default:
+                        //You dun goof'd up boi. Go back
+                        //Only the defaults are accepted
+                        currRec.setValue({ fieldId: 'custrecord_ats_quarter', value: '', ignoreFieldChange: true});
+                        break;
+                }
+            }
          }
          catch(e){
              log.error('Error occured on fieldchanged', e);
          }
 
-     }
- 
-     /**
-      * Function to be executed when field is slaved.
-      *
-      * @param {Object} scriptContext
-      * @param {Record} scriptContext.currentRecord - Current form record
-      * @param {string} scriptContext.sublistId - Sublist name
-      * @param {string} scriptContext.fieldId - Field name
-      *
-      * @since 2015.2
-      */
-     function postSourcing(scriptContext) {
- 
-     }
- 
-     /**
-      * Function to be executed after sublist is inserted, removed, or edited.
-      *
-      * @param {Object} scriptContext
-      * @param {Record} scriptContext.currentRecord - Current form record
-      * @param {string} scriptContext.sublistId - Sublist name
-      *
-      * @since 2015.2
-      */
-     function sublistChanged(scriptContext) {
- 
-     }
- 
-     /**
-      * Function to be executed after line is selected.
-      *
-      * @param {Object} scriptContext
-      * @param {Record} scriptContext.currentRecord - Current form record
-      * @param {string} scriptContext.sublistId - Sublist name
-      *
-      * @since 2015.2
-      */
-     function lineInit(scriptContext) {
- 
      }
  
      /**
@@ -168,77 +155,15 @@
  
      }
  
-     /**
-      * Validation function to be executed when sublist line is committed.
-      *
-      * @param {Object} scriptContext
-      * @param {Record} scriptContext.currentRecord - Current form record
-      * @param {string} scriptContext.sublistId - Sublist name
-      *
-      * @returns {boolean} Return true if sublist line is valid
-      *
-      * @since 2015.2
-      */
-     function validateLine(scriptContext) {
- 
-     }
- 
-     /**
-      * Validation function to be executed when sublist line is inserted.
-      *
-      * @param {Object} scriptContext
-      * @param {Record} scriptContext.currentRecord - Current form record
-      * @param {string} scriptContext.sublistId - Sublist name
-      *
-      * @returns {boolean} Return true if sublist line is valid
-      *
-      * @since 2015.2
-      */
-     function validateInsert(scriptContext) {
- 
-     }
- 
-     /**
-      * Validation function to be executed when record is deleted.
-      *
-      * @param {Object} scriptContext
-      * @param {Record} scriptContext.currentRecord - Current form record
-      * @param {string} scriptContext.sublistId - Sublist name
-      *
-      * @returns {boolean} Return true if sublist line is valid
-      *
-      * @since 2015.2
-      */
-     function validateDelete(scriptContext) {
- 
-     }
- 
-     /**
-      * Validation function to be executed when record is saved.
-      *
-      * @param {Object} scriptContext
-      * @param {Record} scriptContext.currentRecord - Current form record
-      * @returns {boolean} Return true if record is valid
-      *
-      * @since 2015.2
-      */
-     function saveRecord(scriptContext) {
- 
-     }
- 
      return {
          pageInit: pageInit,
          fieldChanged: fieldChanged
-         // postSourcing: postSourcing,
-         // sublistChanged: sublistChanged,
-         // lineInit: lineInit,
-         // validateField: validateField,
-         // validateLine: validateLine,
-         // validateInsert: validateInsert,
-         // validateDelete: validateDelete,
-         // saveRecord: saveRecord
+         // validateField: validateField
      };
      
+     /*
+        Enable the Date Fields
+     */
      function enableDateFields(currRec){
         var disableStart = currRec.getField({
             fieldId: 'custrecord_atstratus_pr_policy_startdate'
@@ -251,6 +176,9 @@
         disableEnd.isDisabled = false;
      }
 
+     /*
+        Disable the Date Fields
+     */
      function disableFields(currRec){
         var disableStart = currRec.getField({
             fieldId: 'custrecord_atstratus_pr_policy_startdate'
@@ -263,6 +191,9 @@
         disableEnd.isDisabled = true;
      }
 
+     /*
+        Enable the 'Quarter' field
+     */
      function enableQuarter(currRec){
         var disableQuarter = currRec.getField({
             fieldId: 'custrecord_ats_quarter'
@@ -270,12 +201,40 @@
         disableQuarter.isDisabled = false;
      }
 
+     /*
+        Disable the 'Quarter' field
+     */
      function disableQuarter(currRec){
         var disableQuarter = currRec.getField({
             fieldId: 'custrecord_ats_quarter'
         });
         disableQuarter.isDisabled = true;
-        currRec.setValue({ fieldId: 'custrecord_ats_quarter', value: ''});
+        currRec.setValue({ fieldId: 'custrecord_ats_quarter', value: '', ignoreFieldChange: true});
      }
+
+     /*
+        Calculate and Set the Quarter Dates accordingly
+
+        initialDate - Initial Start date for the quarter
+        currRec - Current Record for full UI functionalities
+        lastDay - Last day of the quarter month
+     */
+    function setQuarterDates(initialDate, currRec, lastDay){
+        var month, day, year, parsedDate;
+        month = initialDate.getMonth()+1;
+        day = initialDate.getDate();
+        year = initialDate.getFullYear();
+        parsedDate = format.parse({ value: (day + '/' + month + '/' + year), type: format.Type.DATE});
+        //log.debug('start', parsedDate);
+
+        currRec.setValue({ fieldId: 'custrecord_atstratus_pr_policy_startdate', value: parsedDate});
+
+        month += 2;
+        day = lastDay;
+        parsedDate = format.parse({ value: (day + '/' + month + '/' + year), type: format.Type.DATE});
+        //log.debug('end', parsedDate);
+
+        currRec.setValue({ fieldId: 'custrecord_atstratus_pr_policy_enddate', value: parsedDate});
+    }
  });
  
